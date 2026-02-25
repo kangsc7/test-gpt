@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI 유튜브 자동 제작 스튜디오</title>
+  <link rel="stylesheet" href="styles.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=Noto+Sans+KR:wght@400;500;700&family=Jua&family=Do+Hyeon&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Gowun+Dodum&family=Gowun+Batang:wght@400;700&family=Poor+Story&display=swap" rel="stylesheet">
+  <script defer src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script defer src="app.js"></script>
+</head>
+<body>
+  <header>
+    <h1>대본 → 유튜브 자동 제작기 (Gemini 3.0 Flash Preview)</h1>
+    <p>Google 이메일 계정 전환 + 장르 특화 이미지/썸네일/자막/영상 생성</p>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>1) 인증 & API 연결</h2>
+      <p class="hint"><b>중요:</b> OAuth Client ID 없이 진행합니다. 계정 전환은 Google 이메일 계정을 직접 바꿔서 이어서 사용합니다.</p>
+      <div class="grid two">
+        <label>Gemini API Key (AI Studio)
+          <input id="geminiApiKey" placeholder="AIza..." />
+        </label>
+        <label>Gemini 모델
+          <input id="geminiModel" value="gemini-3.0-flash-preview" />
+        </label>
+      </div>
+
+      <details>
+        <summary>Google 이메일 계정 전환 관리 (OAuth Client ID 불필요)</summary>
+        <div class="grid two">
+          <label>현재 사용할 Google 이메일
+            <input id="googleEmail" type="email" placeholder="example@gmail.com" />
+          </label>
+        </div>
+        <div class="actions">
+          <button id="saveEmailBtn">이메일 저장</button>
+          <button id="switchEmailBtn">계정 전환 시작</button>
+          <button id="openGoogleAccountBtn">Google 계정 선택창 열기</button>
+        </div>
+        <p class="hint">계정 상태: <span id="accountInfo">미설정</span></p>
+        <p class="hint" id="emailStatus">무료 한도 소진 시 [계정 전환 시작] 버튼으로 새 Google 이메일로 로그인 후 계속 진행하세요.</p>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>2) 대본/장르 입력</h2>
+      <div class="grid two">
+        <label>장르 선택
+          <select id="genre">
+            <option>야담</option>
+            <option>시니어</option>
+            <option>성인로멘스</option>
+            <option>무협애니메이션</option>
+            <option>경제뉴스(졸라맨 케릭터)</option>
+            <option>코인뉴스</option>
+          </select>
+        </label>
+        <label>씬 분할 수
+          <input id="sceneCount" type="number" min="1" max="30" value="8" />
+        </label>
+      </div>
+      <label>원본 대본
+        <textarea id="scriptInput" rows="10" placeholder="대본을 입력하면 자동으로 씬/이미지 프롬프트/썸네일 카피가 생성됩니다."></textarea>
+      </label>
+      <div class="actions">
+        <button id="analyzeBtn">씬/프롬프트/썸네일 생성</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>3) 장르 최적화 씬 편집 + 이미지 생성</h2>
+      <div id="scenes"></div>
+    </section>
+
+    <section class="card">
+      <h2>4) 썸네일 3종 (CTR 최적화)</h2>
+      <div id="thumbnails" class="grid three"></div>
+    </section>
+
+    <section class="card">
+      <h2>5) 자막/TTS</h2>
+      <div class="grid three">
+        <label>자막 폰트
+          <select id="subtitleFont"></select>
+        </label>
+        <label>폰트 크기(px)
+          <input id="subtitleSize" type="number" value="48" min="20" max="120" />
+        </label>
+        <label>자막 줄 수
+          <select id="subtitleLines">
+            <option value="1">한 줄</option>
+            <option value="2" selected>두 줄</option>
+          </select>
+        </label>
+        <label>자막 위치(Y%)
+          <input id="subtitleY" type="number" value="85" min="10" max="95" />
+        </label>
+        <label>자막 색상
+          <input id="subtitleColor" type="color" value="#ffffff" />
+        </label>
+        <label>배경 색상
+          <input id="subtitleBg" type="color" value="#000000" />
+        </label>
+      </div>
+
+      <details open>
+        <summary>Google Cloud TTS API 연결 / 화자 목록</summary>
+        <p class="hint">TTS는 API Key 저장 후 연결 확인(정상 연결됨) 상태에서 계속 사용됩니다.</p>
+        <div class="grid two">
+          <label>Google Cloud TTS API Key
+            <input id="gcpApiKey" placeholder="Google Cloud Text-to-Speech API Key" />
+          </label>
+          <label>연결 상태
+            <input id="ttsApiStatus" value="미연결" readonly />
+          </label>
+        </div>
+        <div class="actions">
+          <button id="saveTtsApiBtn">API 저장</button>
+          <button id="checkTtsApiBtn">연결 확인</button>
+          <button id="deleteTtsApiBtn">API 삭제</button>
+          <button id="loadVoicesBtn">화자 목록 불러오기</button>
+        </div>
+        <label>화자 (한국어 이름 + 성별)
+          <select id="voiceSelect"></select>
+        </label>
+        <div class="actions">
+          <button id="generateTtsBtn">전체 씬 TTS 생성</button>
+        </div>
+      </details>
+    </section>
+
+    <section class="card">
+      <h2>6) 영상 생성 (로컬 + 백그라운드 워커)</h2>
+      <div class="actions">
+        <button id="renderBtn">영상 생성 시작</button>
+        <button id="downloadAllBtn">전체 리소스 ZIP 다운로드</button>
+      </div>
+      <progress id="progress" value="0" max="100"></progress>
+      <p id="status">대기 중</p>
+      <video id="preview" controls></video>
+    </section>
+
+    <section class="card">
+      <h2>7) 누락되기 쉬운 핵심 체크리스트 (자동화 강화)</h2>
+      <ul id="checklist"></ul>
+    </section>
+  </main>
+</body>
+</html>
